@@ -1,11 +1,12 @@
 import express from "express";
-import { app } from "./firebase"; // Import the Firebase app instance
+import { app, auth } from "./firebase"; // Import the Firebase app and auth instances
 import {
   getFirestore,
   collection,
   getDocs,
   doc,
   getDoc,
+  setDoc,
 } from "firebase/firestore"; // Import Firestore functions
 
 const router = express.Router();
@@ -31,9 +32,8 @@ router.get("/get/allUsers", async (req, res) => {
 
     const users: any[] = [];
     userSnapshot.forEach((userDoc) => {
-      // Include the document name as "username"
       const userData = userDoc.data();
-      users.push({ ...userData, username: userDoc.id });
+      users.push({ ...userData, documentId: userDoc.id });
     });
 
     res.json(users);
@@ -54,29 +54,132 @@ router.get("/get/user", async (req, res) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    // Get username from the request body
-    const { username } = req.body;
+    // Get email from the request body
+    const { email } = req.body;
 
-    if (!username) {
+    if (!email) {
       return res
         .status(400)
-        .json({ error: "Username is required in the request body" });
+        .json({ error: "Email is required in the request body" });
     }
 
-    // Fetch the user document using the username as the document ID
+    // Query the user document with the given email
     const usersCollection = collection(firestore, "Users");
-    const userDoc = await getDoc(doc(usersCollection, username));
+    const querySnapshot = await getDocs(usersCollection);
+    let userData = null;
 
-    if (!userDoc.exists()) {
-      return res.status(404).json({ error: "User not found" });
+    querySnapshot.forEach((userDoc) => {
+      const user = userDoc.data();
+      if (user.email === email) {
+        userData = { ...user, documentId: userDoc.id };
+      }
+    });
+
+    if (userData) {
+      res.json(userData);
+    } else {
+      res.status(404).json({ error: "User not found" });
     }
-
-    const userData = userDoc.data();
-
-    res.json({ ...userData, username: username }); // Using the username as the document name
   } catch (error) {
     console.error("Error fetching user:", error);
     res.status(500).send("Error fetching user");
+  }
+});
+
+router.post("/post/signup", async (req, res) => {
+  try {
+    // Fetch the API key from the request headers
+    const userAPIKey = req.headers["x-api-key"];
+
+    // Compare the fetched API key with the stored API key
+    const storedAPIKey = process.env.REACT_APP_PRAKTYK_API_KEY;
+    if (userAPIKey !== storedAPIKey) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    // Extract user credentials from the request body
+    const { username, email, password } = req.body;
+
+    if (!email || !password) {
+      return res
+        .status(400)
+        .json({ error: "Email and password are required in the request body" });
+    }
+
+    // Create a new user using Firebase Authentication
+    const userCredential = await auth.createUserWithEmailAndPassword(
+      email,
+      password
+    );
+
+    if (userCredential && userCredential.user) {
+      const uid = userCredential.user.uid;
+      const userEmail = userCredential.user.email;
+
+      if (uid && userEmail) {
+        // You can save additional user data to Firestore if needed
+        const usersCollection = collection(firestore, "Users");
+        await setDoc(doc(usersCollection, uid), {
+          username: username,
+          email: userEmail,
+        });
+
+        return res.json({ message: "User signed up successfully" });
+      } else {
+        return res.status(500).json({ error: "User data is missing" });
+      }
+    } else {
+      return res.status(500).json({ error: "User creation failed" });
+    }
+  } catch (error: any) {
+    // Explicitly type error as 'any'
+    console.error("Error signing up user:", error);
+    const errorCode = error.code;
+    const errorMessage = error.message;
+    return res
+      .status(500)
+      .json({ error: "Error signing up user", errorCode, errorMessage });
+  }
+});
+
+router.post("/post/signin", async (req, res) => {
+  try {
+    // Fetch the API key from the request headers
+    const userAPIKey = req.headers["x-api-key"];
+
+    // Compare the fetched API key with the stored API key
+    const storedAPIKey = process.env.REACT_APP_PRAKTYK_API_KEY;
+    if (userAPIKey !== storedAPIKey) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    // Extract user credentials from the request body
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res
+        .status(400)
+        .json({ error: "Email and password are required in the request body" });
+    }
+
+    // Sign in user using Firebase Authentication
+    const userCredential = await auth.signInWithEmailAndPassword(
+      email,
+      password
+    );
+
+    if (userCredential && userCredential.user) {
+      return res.json({ message: "User signed in successfully" });
+    } else {
+      return res.status(500).json({ error: "User sign-in failed" });
+    }
+  } catch (error: any) {
+    console.error("Error signing in user:", error);
+    const errorCode = error.code;
+    const errorMessage = error.message;
+    return res
+      .status(500)
+      .json({ error: "Error signing in user", errorCode, errorMessage });
   }
 });
 
