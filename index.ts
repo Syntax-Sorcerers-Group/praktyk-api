@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import rootRoute from "./src/rootRoute";
 import userRoute from "./src/userRoute";
 import imageRoute from "./src/imageRoute";
@@ -7,6 +8,9 @@ import grammarRoute from "./src/grammarRoute";
 
 const app: express.Application = express();
 const port: number = 8080;
+
+// Use the cors middleware
+app.use(cors());
 
 // Use the route files as middleware
 app.use("/", rootRoute);
