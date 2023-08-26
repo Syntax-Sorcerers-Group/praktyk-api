@@ -15,8 +15,7 @@ const firestore = getFirestore(app);
 // Middleware to parse JSON bodies
 router.use(express.json());
 
-//Route to get all vocab of the specified grade
-router.get("/get/gradeVocab", async (req, res) => {
+router.get("/get/gradeVocabField", async (req, res) => {
   try {
     // Fetch the API key from the request headers
     const userAPIKey = req.headers["x-api-key"];
@@ -27,11 +26,13 @@ router.get("/get/gradeVocab", async (req, res) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    // Get the grade from the request body
-    const { grade } = req.body;
+    // Get the grade and field from the request body
+    const { grade, field } = req.body;
 
-    if (!grade) {
-      return res.status(400).json({ error: "Grade is required in the request body" });
+    if (!grade || !field) {
+      return res
+        .status(400)
+        .json({ error: "Grade and field are required in the request body" });
     }
 
     // Query the Firestore collection for the given grade
@@ -40,7 +41,13 @@ router.get("/get/gradeVocab", async (req, res) => {
 
     if (gradeDoc.exists()) {
       const gradeData = gradeDoc.data();
-      res.json(gradeData);
+
+      // Check if the specified field exists in the gradeData
+      if (gradeData[field]) {
+        res.json({ [field]: gradeData[field] });
+      } else {
+        res.status(404).json({ error: "Field not found in grade" });
+      }
     } else {
       res.status(404).json({ error: "Grade not found" });
     }
