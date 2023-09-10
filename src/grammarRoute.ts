@@ -16,7 +16,7 @@ const firestore = getFirestore(app);
 router.use(express.json());
 
 //Route to get all grammar of the specified grade
-router.get("/get/gradeGrammar", async (req, res) => {
+router.post("/get/gradeGrammar", async (req, res) => {
   try {
     // Fetch the API key from the request headers
     const userAPIKey = req.headers["x-api-key"];
@@ -31,7 +31,9 @@ router.get("/get/gradeGrammar", async (req, res) => {
     const { grade } = req.body;
 
     if (!grade) {
-      return res.status(400).json({ error: "Grade is required in the request body" });
+      return res
+        .status(400)
+        .json({ error: "Grade is required in the request body" });
     }
 
     // Query the Firestore collection for the given grade
