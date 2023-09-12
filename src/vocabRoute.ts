@@ -15,7 +15,7 @@ const firestore = getFirestore(app);
 // Middleware to parse JSON bodies
 router.use(express.json());
 
-router.get("/get/gradeVocabField", async (req, res) => {
+router.post("/get/gradeVocabField", async (req, res) => {
   try {
     // Fetch the API key from the request headers
     const userAPIKey = req.headers["x-api-key"];
