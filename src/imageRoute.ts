@@ -3,7 +3,7 @@ import PicScout from "picscout";
 
 const router = express.Router();
 
-router.get("/get/image", async (req, res) => {
+router.post("/get/image", async (req, res) => {
   try {
     // Fetch the API key from the request headers
     const userAPIKey = req.headers["x-api-key"];
