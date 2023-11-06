@@ -43,7 +43,7 @@ router.get("/get/allUsers", async (req, res) => {
   }
 });
 
-router.get("/get/user", async (req, res) => {
+router.post("/get/user", async (req, res) => {
   try {
     // Fetch the API key from the request headers
     const userAPIKey = req.headers["x-api-key"];
