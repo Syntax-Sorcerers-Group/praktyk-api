@@ -7,6 +7,7 @@ import {
   doc,
   getDoc,
   setDoc,
+  updateDoc,
 } from "firebase/firestore"; // Import Firestore functions
 
 const router = express.Router();
@@ -182,5 +183,45 @@ router.post("/post/signin", async (req, res) => {
       .json({ error: "Error signing in user", errorCode, errorMessage });
   }
 });
+
+router.post("/update/user", async (req, res) => {
+  try {
+    const userAPIKey = req.headers["x-api-key"];
+    const storedAPIKey = process.env.REACT_APP_PRAKTYK_API_KEY;
+
+    if (userAPIKey !== storedAPIKey) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const { email, newUsername } = req.body; // Renamed to newUsername for clarity
+
+    if (!email || !newUsername) {
+      return res.status(400).json({ error: "Email and new username are required in the request body" });
+    }
+
+    // Query the user document with the given email
+    const usersCollection = collection(firestore, "Users");
+    const querySnapshot = await getDocs(usersCollection);
+    let userDocRef = null;
+
+    querySnapshot.forEach((userDoc) => {
+      const user = userDoc.data();
+      if (user.email === email) {
+        userDocRef = doc(firestore, "Users", userDoc.id);
+      }
+    });
+
+    if (userDocRef) {
+      await updateDoc(userDocRef, { username: newUsername }); // Update the username
+      res.json({ message: "Username updated successfully" });
+    } else {
+      res.status(404).json({ error: "User not found" });
+    }
+  } catch (error) {
+    console.error("Error updating user:", error);
+    res.status(500).send("Error updating user");
+  }
+});
+
 
 export default router;
