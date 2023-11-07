@@ -193,9 +193,9 @@ router.post("/update/user", async (req, res) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const { email, newUsername } = req.body; // Renamed to newUsername for clarity
+    const { email, username } = req.body; // Renamed to newUsername for clarity
 
-    if (!email || !newUsername) {
+    if (!email || !username) {
       return res.status(400).json({ error: "Email and new username are required in the request body" });
     }
 
@@ -212,7 +212,7 @@ router.post("/update/user", async (req, res) => {
     });
 
     if (userDocRef) {
-      await updateDoc(userDocRef, { username: newUsername }); // Update the username
+      await updateDoc(userDocRef, { username: username }); // Update the username
       res.json({ message: "Username updated successfully" });
     } else {
       res.status(404).json({ error: "User not found" });
